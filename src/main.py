@@ -33,6 +33,7 @@ parser.add_argument(
     help="Choose which mode you want to execute",
 )
 parser.add_argument("-f", "--folder", help="Path to folder containing the images")
+
 parser.add_argument(
     "-me",
     "--method",
@@ -50,7 +51,7 @@ if args.mode == "generate":
 
 elif args.mode == "cluster":
     print("clustering the dataset...")
-    fit_cluster(n_clusters=30)
+    fit_cluster(n_clusters=40)
 
 elif args.mode == "recommender" and args.method != None:
     print("starting recommendation app...")
