@@ -1,0 +1,3 @@
+The pictures in this folder are example outputs for results with one input picture.
+The input picture was one out of the trained data set and is seen on the left side of the pictures with a distance-value of zero.
+There are outputs for every Method: Hashes, Embeddings, Color Histograms
