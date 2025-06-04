@@ -33,6 +33,7 @@ parser.add_argument(
     help="Choose which mode you want to execute",
 )
 parser.add_argument("-f", "--folder", help="Path to folder containing the images")
+
 parser.add_argument(
     "-me",
     "--method",
