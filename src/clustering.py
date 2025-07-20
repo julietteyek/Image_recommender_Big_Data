@@ -19,6 +19,7 @@ import pickle
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+import numpy as np
 
 
 def fit_cluster(n_clusters=10):
@@ -42,7 +43,7 @@ def fit_cluster(n_clusters=10):
 
 
     """
-    print("Clustering the collected data")
+    print("Collecting data")
 
     # loading pickle file with data
     # file = "C:/Users/marko/Documents/viertes_semester/BigData/Image_recommender_Big_Data/src/pickle/data.pk"
@@ -54,15 +55,16 @@ def fit_cluster(n_clusters=10):
 
     pk_path = join(current_path, pk_file)
     data = pd.read_pickle(pk_path)
-
+    
+    # getting data for embedding clusteting
+    #emb_col = pd.DataFrame(data["Embeddings"])
+    emb_col = np.stack(data['Embeddings'].values)
     # getting data for histograms clustering
     histograms_col = pd.DataFrame(data["RGB_Histogram"].tolist())
 
     # getting data for perceptual hash clustering
     phash_col = pd.DataFrame(data["Perceptual_Hash"].tolist())
 
-    # getting data for embedding clusteting
-    emb_col = pd.DataFrame(data["Embeddings"].tolist())
 
     """
     #getting data for all 3 combined
@@ -83,6 +85,7 @@ def fit_cluster(n_clusters=10):
     scaler.fit(emb_col)
     histograms_col = pd.DataFrame(scaler.transform(emb_col),
                                columns= emb_col.columns )
+    
     """
 
     # initializing clustering model
@@ -93,7 +96,7 @@ def fit_cluster(n_clusters=10):
 
         kmeans_phash = KMeans(n_clusters=n_clusters, random_state=42)
 
-        kmeans_emb = KMeans(n_clusters=n_clusters, random_state=42)
+        kmeans_emb = KMeans(n_clusters=(n_clusters*3), random_state=42)
 
         """
         kmeans_all = KMeans( n_clusters = n_clusters, random_state = 0)
@@ -119,14 +122,15 @@ def fit_cluster(n_clusters=10):
         modelfile_histo = join(current_path, modelfile_histo)
         modelfile_phash = join(current_path, modelfile_phash)
         modelfile_emb = join(current_path, modelfile_emb)
-
+        
+        print(modelfile_histo)
         # saving the models
         with open(modelfile_histo, "wb") as modelfile_histo:
             pickle.dump(kmeans_histo, modelfile_histo)
 
         with open(modelfile_phash, "wb") as modelfile_phash:
             pickle.dump(kmeans_phash, modelfile_phash)
-
+            
         with open(modelfile_emb, "wb") as modelfile_emb:
             pickle.dump(kmeans_emb, modelfile_emb)
 
@@ -142,6 +146,9 @@ def fit_cluster(n_clusters=10):
         # saving file
         data_clustered.to_pickle(clustered_data_path)
 
+
+
+    print("Starting clustering")
     fit_and_save_kmeans(n_clusters)
 
     print("clustering finished!")
@@ -190,7 +197,7 @@ def predict_cluster(img_path, method, data):  # , histogram, embedding, phash):
     if method == "histogram":
         new_data = pd.DataFrame({"Name": img_path, "RGB_Histogram": [data]})
 
-        # Konvertiere die neue Liste der perceptual hashes in ein DataFrame
+        # Konvertiere die neue Liste des Histograms in einen DataFrame
         new_data_df = pd.DataFrame(new_data["RGB_Histogram"].tolist())
 
         """
@@ -202,11 +209,9 @@ def predict_cluster(img_path, method, data):  # , histogram, embedding, phash):
                                    columns= new_data_df.columns )
         """
     elif method == "embeddings":
-        new_data = pd.DataFrame({"Name": img_path, "Embeddings": data})
-
-        # Konvertiere die neue Liste der perceptual hashes in ein DataFrame
-        new_data_df = pd.DataFrame(new_data["Embeddings"].tolist())
-
+        new_data = pd.DataFrame({"Name": img_path, "Embeddings": [data]})
+        
+        new_data_df = np.stack(new_data["Embeddings"].values) 
         """
         #scaling data
         scaler = StandardScaler()
@@ -217,7 +222,6 @@ def predict_cluster(img_path, method, data):  # , histogram, embedding, phash):
         """
     elif method == "hashes":
         new_data = pd.DataFrame({"Name": img_path, "Perceptual_Hash": [data]})
-
         # Konvertiere die neue Liste der perceptual hashes in ein DataFrame
         new_data_df = pd.DataFrame(new_data["Perceptual_Hash"].tolist())
 

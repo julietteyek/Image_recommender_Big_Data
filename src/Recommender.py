@@ -12,7 +12,7 @@ from clustering import predict_cluster
 from resnet_extraction import ResNet_Feature_Extractor
 from phashes import perceptual_hashes
 from histograms import hist
-from scipy.spatial.distance import euclidean, hamming
+from scipy.spatial.distance import euclidean, hamming, cosine
 
 
 class Recommender:
@@ -56,7 +56,6 @@ class Recommender:
             # extract features from the uploaded image(s):
             features = [self.extract_features(img, method) for img in source_images]
             uploaded_feature = np.mean(features, axis=0)
-
             if uploaded_feature is not None:
                 # cluster the upload image to get class number
                 cluster = predict_cluster("unused_path", method, uploaded_feature)
@@ -89,9 +88,8 @@ class Recommender:
                 )  # combine top-k-images from each method
             else:
                 print("Failed to extract features from the upload.")
-
         # display the combined results
-        self.show_results(combined_results)
+        self.show_results(combined_results, source_images)
 
     def extract_features(self, img, method):
         if method == "embeddings":
@@ -122,7 +120,8 @@ class Recommender:
         for image_id, feature in zip(dataset["Image_ID"], dataset[method_column]):
             feature = np.ravel(np.array(feature))
             if method == "embeddings":
-                dist = euclidean(uploaded_feature, feature)
+                #dist = euclidean(uploaded_feature, feature)
+                dist = cosine(uploaded_feature, feature)
             elif method == "hashes":
                 dist = hamming(uploaded_feature, feature) * len(feature)
             elif method == "histogram":
@@ -158,25 +157,24 @@ class Recommender:
     def chi_square_distance(self, histA, histB, eps=1e-10):
         return 0.5 * np.sum(((histA - histB) ** 2) / (histA + histB + eps))
 
-    def show_results(self, combined_results):
+    def show_results(self, combined_results,source_images):
         if not combined_results:
             print("No neighbors found.")
             return
-
         # calculate total number of images to display
-        total_images = sum(len(top_images) for _, (_, top_images) in combined_results)
-
+        total_images = sum(len(top_images) for _, (_, top_images) in combined_results) 
+        print(total_images)
         # grid size for subplots (rows, columns)
         cols = 5  # bc 5 recommended images are demanded
         rows = (total_images + cols - 1) // cols
+        """
         plt.figure(figsize=(15, 5 * rows))  # figure size based on the number of rows
         plt.suptitle("We thought you might also like the following:", fontsize=16)
 
         img_idx = 1  # tracks the subplot index
-
         for method, (top_k, top_images) in combined_results:
             for i, (dist, img) in enumerate(zip(top_k, top_images)):
-                plt.subplot(rows, cols, img_idx)
+                plt.subplot(2, cols, img_idx)
                 plt.imshow(
                     cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 )  # convert BGR to RGB for correct color display
@@ -185,8 +183,40 @@ class Recommender:
                 )  # display method, distance in the title
                 plt.axis("off")
                 img_idx += 1
-
         plt.show()
+        """
+        num_source = len(source_images)
+        num_suggestions = sum(len(top_images) for _, (_, top_images) in combined_results)
+        cols = max(num_source, num_suggestions)  # gleiche Spaltenanzahl in beiden Reihen
+
+        fig = plt.figure(figsize=(3 * cols, 6))
+
+        # Erste Zeile: "your images"
+        for idx, img in enumerate(source_images):
+            ax = plt.subplot(2, cols, idx + 1)
+            ax.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            #ax.set_title("Your image")
+            ax.axis("off")
+
+        # Zweite Zeile: "we thought you might also like"
+        img_idx = 0
+        for method, (top_k, top_images) in combined_results:
+            for dist, img in zip(top_k, top_images):
+                ax = plt.subplot(2, cols, cols + img_idx + 1)  # Start in 2. Zeile
+                ax.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                ax.set_title(f"{method}: {dist[0]:.2f}")
+                ax.axis("off")
+                img_idx += 1
+
+        fig.text(0.5, 0.9, "Your Images", ha="center", va="center", fontsize=16, weight='bold')
+        fig.text(0.5, 0.48, "We thought you might also like", ha="center", va="center", fontsize=16, weight='bold')
+
+        # Gemeinsame Titel für die Zeilen
+        fig.suptitle("Image Suggestions", fontsize=16)
+        plt.tight_layout()
+        plt.subplots_adjust(top=0.9)
+        plt.show()
+
 
 
 # recommender = Recommender(method="resnet_embedding")

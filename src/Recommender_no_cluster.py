@@ -72,7 +72,7 @@ class Recommender_NC:
         self.show_results(combined_results)
 
     def extract_features(self, img, method):
-        if method == "resnet_embedding":
+        if method == "embeddings":
             resnet_extractor = ResNet_Feature_Extractor()
             return resnet_extractor.extract_features(img)
         elif method == "hashes":
@@ -97,7 +97,7 @@ class Recommender_NC:
         for idx, feature in dataset[method_column].items():
             feature = np.ravel(np.array(feature))
 
-            if method == "resnet_embedding":
+            if method == "embeddings":
                 dist = euclidean(uploaded_feature, feature)
             elif method == "hashes":
                 dist = hamming(uploaded_feature, feature) * len(feature)
